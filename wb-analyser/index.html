@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WB Аналитик — Анализ конкурентов</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+      :root {
+        --bg: #0f0f14;
+        --surface: #18181f;
+        --surface2: #1e1e28;
+        --border: #2a2a38;
+        --accent: #7c6aff;
+        --accent2: #a855f7;
+        --green: #22c55e;
+        --red: #ef4444;
+        --amber: #f59e0b;
+        --text: #e8e8f0;
+        --muted: #7070a0;
+        --card-radius: 12px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Segoe UI", system-ui, sans-serif;
+        min-height: 100vh;
+        padding: 24px 16px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .logo {
+        font-size: 11px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 12px;
+        font-weight: 600;
+      }
+
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #e8e8f0, #a78bfa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .upload-zone {
+        border: 2px dashed var(--border);
+        border-radius: var(--card-radius);
+        padding: 48px 24px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: var(--surface);
+        margin-bottom: 24px;
+        max-width: 600px;
+        margin: 0 auto 32px;
+      }
+
+      .upload-zone:hover,
+      .upload-zone.drag-over {
+        border-color: var(--accent);
+        background: rgba(124, 106, 255, 0.05);
+      }
+
+      .upload-icon {
+        font-size: 40px;
+        margin-bottom: 12px;
+      }
+
+      .upload-zone h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      .upload-zone p {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      #fileInput {
+        display: none;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        color: white;
+      }
+
+      .btn-primary:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+
+      .btn-outline:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .section {
+        max-width: 900px;
+        margin: 0 auto 32px;
+      }
+
+      .section-title {
+        font-size: 12px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+      }
+      .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--card-radius);
+        padding: 20px;
+      }
+
+      .metric-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--card-radius);
+        padding: 16px;
+      }
+
+      .metric-label {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+      }
+
+      .metric-value {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+
+      .metric-delta {
+        font-size: 12px;
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .delta-up {
+        color: var(--green);
+      }
+      .delta-down {
+        color: var(--red);
+      }
+      .delta-neutral {
+        color: var(--muted);
+      }
+
+      .competitor-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+      }
+
+      .competitor-name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .competitor-article {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      .badge {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-weight: 600;
+      }
+
+      .badge-green {
+        background: rgba(34, 197, 94, 0.15);
+        color: var(--green);
+      }
+      .badge-red {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--red);
+      }
+      .badge-amber {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--amber);
+      }
+      .badge-purple {
+        background: rgba(124, 106, 255, 0.15);
+        color: var(--accent);
+      }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+      }
+
+      .stat-row:last-child {
+        border-bottom: none;
+      }
+
+      .stat-key {
+        color: var(--muted);
+      }
+
+      .stat-val {
+        font-weight: 600;
+      }
+
+      .bar-wrap {
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin-top: 6px;
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, var(--accent), var(--accent2));
+      }
+
+      /* AI Analysis */
+      .ai-panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--card-radius);
+        overflow: hidden;
+      }
+
+      .ai-panel-header {
+        background: linear-gradient(
+          135deg,
+          rgba(124, 106, 255, 0.1),
+          rgba(168, 85, 247, 0.05)
+        );
+        border-bottom: 1px solid var(--border);
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .ai-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      .ai-panel-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .ai-content {
+        padding: 20px;
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--text);
+        white-space: pre-wrap;
+      }
+
+      .ai-content .thinking {
+        color: var(--muted);
+        font-style: italic;
+        font-size: 13px;
+      }
+
+      .recommendation {
+        background: var(--surface2);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 8px 8px 0;
+        padding: 14px 16px;
+        margin: 10px 0;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .rec-priority {
+        font-size: 10px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      .priority-high {
+        color: var(--red);
+      }
+      .priority-med {
+        color: var(--amber);
+      }
+      .priority-low {
+        color: var(--green);
+      }
+
+      .action-bar {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 24px auto 0;
+        max-width: 600px;
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        display: inline-block;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      #results {
+        display: none;
+      }
+
+      .search-queries {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .query-row {
+        background: var(--surface2);
+        border-radius: 8px;
+        padding: 10px 14px;
+        display: grid;
+        grid-template-columns: 1fr auto auto auto;
+        gap: 12px;
+        align-items: center;
+        font-size: 13px;
+      }
+
+      .query-text {
+        font-weight: 500;
+      }
+      .query-vol {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .query-conv {
+        font-weight: 600;
+      }
+
+      .winner-tag {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="logo">WB Analytics</div>
+      <h1>Анализ конкурентов</h1>
+      <p class="subtitle">
+        Загрузи отчёт «Сравнение карточек» — получи конкретные советы
+      </p>
+    </div>
+
+    <div style="max-width: 600px; margin: 0 auto 32px">
+      <div
+        class="upload-zone"
+        id="dropZone"
+        onclick="document.getElementById('fileInput').click()"
+      >
+        <div class="upload-icon">📊</div>
+        <h3>Загрузи файл Excel из WB</h3>
+        <p>Отчёт «Сравнение карточек» из кабинета Wildberries</p>
+        <p style="margin-top: 8px; font-size: 12px; color: #5050a0">
+          Перетащи файл сюда или нажми чтобы выбрать
+        </p>
+        <input
+          type="file"
+          id="fileInput"
+          accept=".xlsx,.xls"
+          onchange="handleFile(event)"
+        />
+      </div>
+
+      <div
+        id="fileInfo"
+        class="hidden"
+        style="
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 14px 18px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span>📄</span>
+          <span id="fileName" style="font-size: 14px; font-weight: 500"></span>
+        </div>
+        <button class="btn btn-primary" id="analyzeBtn" onclick="runAnalysis()">
+          ✨ Анализировать
+        </button>
+      </div>
+    </div>
+
+    <div id="results">
+      <!-- My metrics -->
+      <div class="section">
+        <div class="section-title">Мои показатели — ALLOVEALLURE</div>
+        <div class="grid-4" id="myMetrics"></div>
+      </div>
+
+      <!-- Competitor comparison -->
+      <div class="section">
+        <div class="section-title">Конкуренты</div>
+        <div class="grid-2" id="competitorCards"></div>
+      </div>
+
+      <!-- Search queries -->
+      <div class="section">
+        <div class="section-title">Поисковые запросы — сравнение конверсий</div>
+        <div class="search-queries" id="searchQueries"></div>
+      </div>
+
+      <!-- AI Analysis -->
+      <div class="section">
+        <div class="section-title">ИИ-анализ и рекомендации</div>
+        <div class="ai-panel">
+          <div class="ai-panel-header">
+            <div class="ai-dot"></div>
+            <div class="ai-panel-title">Claude анализирует данные...</div>
+          </div>
+          <div class="ai-content" id="aiContent">
+            <span class="thinking">Загрузка анализа...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let parsedData = null;
+
+      // Drag and drop
+      const dropZone = document.getElementById("dropZone");
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("drag-over");
+      });
+      dropZone.addEventListener("dragleave", () =>
+        dropZone.classList.remove("drag-over"),
+      );
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("drag-over");
+        const file = e.dataTransfer.files[0];
+        if (file) processFile(file);
+      });
+
+      function handleFile(e) {
+        const file = e.target.files[0];
+        if (file) processFile(file);
+      }
+
+      function processFile(file) {
+        document.getElementById("fileName").textContent = file.name;
+        document.getElementById("fileInfo").classList.remove("hidden");
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const wb = XLSX.read(e.target.result, { type: "array" });
+            parsedData = parseWBReport(wb);
+          } catch (err) {
+            alert("Ошибка чтения файла: " + err.message);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }
+
+      function parseWBReport(wb) {
+        const data = {};
+
+        // Metrics sheet
+        const metricsSheet = wb.Sheets["Показатели"];
+        if (metricsSheet) {
+          const rows = XLSX.utils.sheet_to_json(metricsSheet, { header: 1 });
+          data.metrics = {};
+          const header = rows[0];
+          rows.slice(1).forEach((row) => {
+            const key = row[0];
+            if (!key) return;
+            data.metrics[key] = {
+              my: row[1],
+              comp1: row[2],
+              comp2: row[4],
+              comp3: row[6],
+              comp4: row[8],
+              diff1: row[3],
+              diff2: row[5],
+              diff3: row[7],
+              diff4: row[9],
+            };
+          });
+        }
+
+        // Search queries - all articles
+        const searchSheet =
+          wb.Sheets["Поисковые запросы по всем ар..."] ||
+          Object.keys(wb.Sheets).find((n) =>
+            n.includes("Поисковые запросы по всем"),
+          );
+        if (searchSheet) {
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[searchSheet], {
+            header: 1,
+          });
+          data.searchQueries = rows
+            .slice(1)
+            .filter((r) => r[0])
+            .map((r) => ({
+              query: r[0],
+              volume: r[1],
+              myConv: r[3],
+              comp1Conv: r[4],
+              comp2Conv: r[5],
+              comp3Conv: r[6],
+              comp4Conv: r[7],
+            }));
+        }
+
+        // Warehouses
+        const whSheet = wb.Sheets["Склады и регионы"];
+        if (whSheet) {
+          const rows = XLSX.utils.sheet_to_json(whSheet, { header: 1 });
+          data.warehouses = rows.slice(1).filter((r) => r[0]);
+        }
+
+        return data;
+      }
+
+      async function runAnalysis() {
+        if (!parsedData) {
+          alert("Подожди, файл ещё читается");
+          return;
+        }
+
+        const btn = document.getElementById("analyzeBtn");
+        btn.innerHTML = '<span class="spinner"></span> Анализирую...';
+        btn.disabled = true;
+
+        document.getElementById("results").style.display = "block";
+        document
+          .getElementById("results")
+          .scrollIntoView({ behavior: "smooth", block: "start" });
+
+        renderMetrics();
+        renderCompetitors();
+        renderSearchQueries();
+        await runAIAnalysis();
+
+        btn.innerHTML = "✅ Готово";
+      }
+
+      function renderMetrics() {
+        const m = parsedData.metrics;
+        const myOrders = m["Заказы, шт"]?.my;
+        const myConv = m["Конверсия в заказ, %"]?.my;
+        const myPosition = m["Средняя позиция"]?.my;
+        const myReviews = m["Количество отзывов"]?.my;
+        const myImpressions = m["Показы"]?.my;
+
+        const cards = [
+          {
+            label: "Заказы",
+            value: myOrders,
+            icon: "🛒",
+            note: `vs топ: ${m["Заказы, шт"]?.comp1}`,
+          },
+          {
+            label: "Конверсия",
+            value: myConv + "%",
+            icon: "📈",
+            note: `vs топ: ${m["Конверсия в заказ, %"]?.comp1}%`,
+          },
+          {
+            label: "Позиция",
+            value: "#" + myPosition,
+            icon: "📍",
+            note: `топ конкурент: #${m["Средняя позиция"]?.comp1}`,
+          },
+          {
+            label: "Отзывы",
+            value: Number(myReviews).toLocaleString("ru"),
+            icon: "⭐",
+            note: `vs топ: ${Number(m["Количество отзывов"]?.comp1).toLocaleString("ru")}`,
+          },
+        ];
+
+        document.getElementById("myMetrics").innerHTML = cards
+          .map(
+            (c) => `
+    <div class="metric-card">
+      <div class="metric-label">${c.icon} ${c.label}</div>
+      <div class="metric-value">${c.value}</div>
+      <div class="metric-delta delta-neutral">${c.note}</div>
+    </div>
+  `,
+          )
+          .join("");
+      }
+
+      function renderCompetitors() {
+        const m = parsedData.metrics;
+        const competitors = [
+          {
+            name: m["Название"]?.comp1 || "Конкурент 1",
+            article: "706275862",
+            brand: m["Бренд"]?.comp1,
+            orders: m["Заказы, шт"]?.comp1,
+            conv: m["Конверсия в заказ, %"]?.comp1,
+            pos: m["Средняя позиция"]?.comp1,
+            reviews: m["Количество отзывов"]?.comp1,
+            price: m["Медианная цена покупателя, ₽"]?.comp1,
+            ctr: m["CTR"]?.comp1,
+            diffOrders: m["Заказы, шт"]?.diff1,
+          },
+          {
+            name: m["Название"]?.comp2 || "Конкурент 2",
+            article: "772888871",
+            brand: m["Бренд"]?.comp2,
+            orders: m["Заказы, шт"]?.comp2,
+            conv: m["Конверсия в заказ, %"]?.comp2,
+            pos: m["Средняя позиция"]?.comp2,
+            reviews: m["Количество отзывов"]?.comp2,
+            price: m["Медианная цена покупателя, ₽"]?.comp2,
+            ctr: m["CTR"]?.comp2,
+            diffOrders: m["Заказы, шт"]?.diff2,
+          },
+          {
+            name: m["Название"]?.comp3 || "Конкурент 3",
+            article: "317511943",
+            brand: m["Бренд"]?.comp3,
+            orders: m["Заказы, шт"]?.comp3,
+            conv: m["Конверсия в заказ, %"]?.comp3,
+            pos: m["Средняя позиция"]?.comp3,
+            reviews: m["Количество отзывов"]?.comp3,
+            price: m["Медианная цена покупателя, ₽"]?.comp3,
+            ctr: m["CTR"]?.comp3,
+            diffOrders: m["Заказы, шт"]?.diff3,
+          },
+          {
+            name: m["Название"]?.comp4 || "Конкурент 4",
+            article: "143395518",
+            brand: m["Бренд"]?.comp4,
+            orders: m["Заказы, шт"]?.comp4,
+            conv: m["Конверсия в заказ, %"]?.comp4,
+            pos: m["Средняя позиция"]?.comp4,
+            reviews: m["Количество отзывов"]?.comp4,
+            price: m["Медианная цена покупателя, ₽"]?.comp4,
+            ctr: m["CTR"]?.comp4,
+            diffOrders: m["Заказы, шт"]?.diff4,
+          },
+        ];
+
+        const myOrders = m["Заказы, шт"]?.my;
+
+        document.getElementById("competitorCards").innerHTML = competitors
+          .map((c) => {
+            const threat =
+              c.orders > myOrders * 3
+                ? "high"
+                : c.orders > myOrders
+                  ? "med"
+                  : "low";
+            const threatLabel =
+              threat === "high"
+                ? "🔴 Главная угроза"
+                : threat === "med"
+                  ? "🟡 Конкурент"
+                  : "🟢 Ниже нас";
+            const badgeClass =
+              threat === "high"
+                ? "badge-red"
+                : threat === "med"
+                  ? "badge-amber"
+                  : "badge-green";
+
+            return `
+    <div class="card">
+      <div class="competitor-header">
+        <div>
+          <div class="competitor-name">${c.brand || "Бренд"}</div>
+          <div class="competitor-article">Арт. ${c.article}</div>
+        </div>
+        <span class="badge ${badgeClass}">${threatLabel}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-key">Заказы</span>
+        <span class="stat-val">${Number(c.orders).toLocaleString("ru")} шт</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-key">Конверсия</span>
+        <span class="stat-val">${c.conv}%</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-key">Позиция</span>
+        <span class="stat-val">#${c.pos}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-key">Цена</span>
+        <span class="stat-val">${c.price} ₽</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-key">CTR</span>
+        <span class="stat-val">${c.ctr}%</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-key">Отзывы</span>
+        <span class="stat-val">${Number(c.reviews).toLocaleString("ru")}</span>
+      </div>
+    </div>`;
+          })
+          .join("");
+      }
+
+      function renderSearchQueries() {
+        if (!parsedData.searchQueries) return;
+
+        const top = parsedData.searchQueries.slice(0, 8);
+        const myOrders = parsedData.metrics["Заказы, шт"]?.my;
+
+        document.getElementById("searchQueries").innerHTML = top
+          .map((q) => {
+            const convs = [
+              q.myConv,
+              q.comp1Conv,
+              q.comp2Conv,
+              q.comp3Conv,
+              q.comp4Conv,
+            ].map(Number);
+            const maxConv = Math.max(...convs.filter((v) => !isNaN(v)));
+            const imBeating = q.myConv === maxConv;
+            const myIsLow = q.myConv < maxConv * 0.6;
+
+            return `
+    <div class="query-row">
+      <div>
+        <div class="query-text">${q.query}</div>
+        <div class="query-vol">${Number(q.volume).toLocaleString("ru")} запросов/мес</div>
+      </div>
+      <div class="query-conv" style="color:var(--muted)">Я: <span style="color:${myIsLow ? "#ef4444" : "#22c55e"}">${q.myConv}%</span></div>
+      <div class="query-conv" style="color:var(--muted);font-size:12px">Топ: ${maxConv}%</div>
+      <span class="winner-tag badge ${imBeating ? "badge-green" : myIsLow ? "badge-red" : "badge-amber"}">
+        ${imBeating ? "✓ Лидер" : myIsLow ? "↓ Слабо" : "≈ Норм"}
+      </span>
+    </div>`;
+          })
+          .join("");
+      }
+
+      async function runAIAnalysis() {
+        const m = parsedData.metrics;
+        const sq = parsedData.searchQueries?.slice(0, 6) || [];
+
+        const dataForAI = {
+          myBrand: "ALLOVEALLURE",
+          myArticle: "384687893",
+          metrics: {
+            orders: m["Заказы, шт"]?.my,
+            conversion: m["Конверсия в заказ, %"]?.my,
+            position: m["Средняя позиция"]?.my,
+            price: m["Медианная цена покупателя, ₽"]?.my,
+            reviews: m["Количество отзывов"]?.my,
+            ctr: m["CTR"]?.my,
+            impressions: m["Показы"]?.my,
+            cartAdd: m["Конверсия в корзину, %"]?.my,
+            rating: m["Рейтинг по отзывам"]?.my,
+          },
+          competitors: [
+            {
+              brand: m["Бренд"]?.comp1,
+              orders: m["Заказы, шт"]?.comp1,
+              conv: m["Конверсия в заказ, %"]?.comp1,
+              pos: m["Средняя позиция"]?.comp1,
+              price: m["Медианная цена покупателя, ₽"]?.comp1,
+              reviews: m["Количество отзывов"]?.comp1,
+              ctr: m["CTR"]?.comp1,
+            },
+            {
+              brand: m["Бренд"]?.comp2,
+              orders: m["Заказы, шт"]?.comp2,
+              conv: m["Конверсия в заказ, %"]?.comp2,
+              pos: m["Средняя позиция"]?.comp2,
+              price: m["Медианная цена покупателя, ₽"]?.comp2,
+              reviews: m["Количество отзывов"]?.comp2,
+              ctr: m["CTR"]?.comp2,
+            },
+            {
+              brand: m["Бренд"]?.comp3,
+              orders: m["Заказы, шт"]?.comp3,
+              conv: m["Конверсия в заказ, %"]?.comp3,
+              pos: m["Средняя позиция"]?.comp3,
+              price: m["Медианная цена покупателя, ₽"]?.comp3,
+              reviews: m["Количество отзывов"]?.comp3,
+              ctr: m["CTR"]?.comp3,
+            },
+            {
+              brand: m["Бренд"]?.comp4,
+              orders: m["Заказы, шт"]?.comp4,
+              conv: m["Конверсия в заказ, %"]?.comp4,
+              pos: m["Средняя позиция"]?.comp4,
+              price: m["Медианная цена покупателя, ₽"]?.comp4,
+              reviews: m["Количество отзывов"]?.comp4,
+              ctr: m["CTR"]?.comp4,
+            },
+          ],
+          topSearchQueries: sq.map((q) => ({
+            query: q.query,
+            volume: q.volume,
+            myConv: q.myConv,
+            bestCompConv: Math.max(
+              q.comp1Conv,
+              q.comp2Conv,
+              q.comp3Conv,
+              q.comp4Conv,
+            ),
+          })),
+        };
+
+        const prompt = `Ты — эксперт по Wildberries аналитике. Проанализируй данные продавца и дай конкретные, применимые сегодня рекомендации.
+
+ДАННЫЕ ПРОДАВЦА (${dataForAI.myBrand}, арт. ${dataForAI.myArticle}):
+${JSON.stringify(dataForAI.metrics, null, 2)}
+
+КОНКУРЕНТЫ:
+${JSON.stringify(dataForAI.competitors, null, 2)}
+
+ТОП ПОИСКОВЫЕ ЗАПРОСЫ:
+${JSON.stringify(dataForAI.topSearchQueries, null, 2)}
+
+Дай анализ в следующем формате:
+
+🔍 ГЛАВНАЯ ПРОБЛЕМА
+[Одна главная причина почему у конкурентов больше заказов — конкретно, с цифрами]
+
+🎯 ЧТО СДЕЛАТЬ ПРЯМО СЕЙЧАС (по приоритетам):
+
+[ПРИОРИТЕТ 1 — ВЫСОКИЙ]
+[Конкретное действие с объяснением почему это важно и какого результата ожидать]
+
+[ПРИОРИТЕТ 2 — СРЕДНИЙ]
+[Конкретное действие]
+
+[ПРИОРИТЕТ 3 — СРЕДНИЙ]
+[Конкретное действие]
+
+💰 ЦЕНОВАЯ СТРАТЕГИЯ
+[Конкретный совет по цене исходя из данных]
+
+🔑 ПОИСКОВЫЕ ЗАПРОСЫ
+[Какие запросы использовать активнее и почему]
+
+📊 ИТОГ
+[2-3 предложения: главный вывод и ожидаемый результат от изменений]
+
+Говори конкретно. Используй реальные цифры из данных. Не давай общих советов типа "улучшите контент" — объясняй что именно и почему.`;
+
+        const aiContent = document.getElementById("aiContent");
+        aiContent.innerHTML =
+          '<span class="thinking">ИИ анализирует данные...</span>';
+
+        try {
+          const response = await fetch(
+            "https://api.anthropic.com/v1/messages",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-api-key": "ANTHROPIC_API_KEY",
+                "anthropic-version": "2023-06-01",
+              },
+              body: JSON.stringify({
+                model: "claude-sonnet-4-6",
+                max_tokens: 1000,
+                messages: [{ role: "user", content: prompt }],
+              }),
+            },
+          );
+
+          const data = await response.json();
+          const text = data.content?.[0]?.text || "Ошибка получения анализа";
+
+          // Render with formatting
+          aiContent.innerHTML = formatAIResponse(text);
+        } catch (err) {
+          aiContent.innerHTML = `<span style="color:var(--red)">Ошибка: ${err.message}</span>`;
+        }
+      }
+
+      function formatAIResponse(text) {
+        return text
+          .replace(
+            /\[ПРИОРИТЕТ 1[^\]]*\]/g,
+            '<div class="rec-priority priority-high">🔴 ПРИОРИТЕТ 1 — ВЫСОКИЙ</div>',
+          )
+          .replace(
+            /\[ПРИОРИТЕТ 2[^\]]*\]/g,
+            '<div class="rec-priority priority-med">🟡 ПРИОРИТЕТ 2 — СРЕДНИЙ</div>',
+          )
+          .replace(
+            /\[ПРИОРИТЕТ 3[^\]]*\]/g,
+            '<div class="rec-priority priority-low">🟢 ПРИОРИТЕТ 3</div>',
+          )
+          .replace(
+            /(🔍[^\n]+)/g,
+            '<div style="font-size:15px;font-weight:700;margin:16px 0 8px;color:#e8e8f0">$1</div>',
+          )
+          .replace(
+            /(🎯[^\n]+)/g,
+            '<div style="font-size:15px;font-weight:700;margin:16px 0 8px;color:#e8e8f0">$1</div>',
+          )
+          .replace(
+            /(💰[^\n]+)/g,
+            '<div style="font-size:15px;font-weight:700;margin:16px 0 8px;color:#e8e8f0">$1</div>',
+          )
+          .replace(
+            /(🔑[^\n]+)/g,
+            '<div style="font-size:15px;font-weight:700;margin:16px 0 8px;color:#e8e8f0">$1</div>',
+          )
+          .replace(
+            /(📊[^\n]+)/g,
+            '<div style="font-size:15px;font-weight:700;margin:16px 0 8px;color:#e8e8f0">$1</div>',
+          )
+          .replace(/\n\n/g, "<br><br>")
+          .replace(/\n/g, "<br>");
+      }
+    </script>
+  </body>
+</html>
