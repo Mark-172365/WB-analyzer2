@@ -1,0 +1,1284 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WB Аналитик — Анализ конкурентов</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+      :root {
+        --bg: #0f0f14;
+        --surface: #18181f;
+        --surface2: #1e1e28;
+        --border: #2a2a38;
+        --accent: #7c6aff;
+        --accent2: #a855f7;
+        --green: #22c55e;
+        --red: #ef4444;
+        --amber: #f59e0b;
+        --text: #e8e8f0;
+        --muted: #7070a0;
+        --card-radius: 12px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Segoe UI", system-ui, sans-serif;
+        min-height: 100vh;
+        padding: 24px 16px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .logo {
+        font-size: 11px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 12px;
+        font-weight: 600;
+      }
+
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #e8e8f0, #a78bfa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .upload-zone {
+        border: 2px dashed var(--border);
+        border-radius: var(--card-radius);
+        padding: 48px 24px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: var(--surface);
+        margin-bottom: 24px;
+        max-width: 600px;
+        margin: 0 auto 32px;
+      }
+
+      .upload-zone:hover,
+      .upload-zone.drag-over {
+        border-color: var(--accent);
+        background: rgba(124, 106, 255, 0.05);
+      }
+
+      .upload-icon {
+        font-size: 40px;
+        margin-bottom: 12px;
+      }
+
+      .upload-zone h3 {
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      .upload-zone p {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      #fileInput {
+        display: none;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        color: white;
+      }
+
+      .btn-primary:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-outline {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+
+      .btn-outline:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .section {
+        max-width: 900px;
+        margin: 0 auto 32px;
+      }
+
+      .section-title {
+        font-size: 12px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+      }
+      .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--card-radius);
+        padding: 20px;
+      }
+
+      .metric-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--card-radius);
+        padding: 16px;
+      }
+
+      .metric-label {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 6px;
+      }
+
+      .metric-value {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+
+      .metric-delta {
+        font-size: 12px;
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .delta-up {
+        color: var(--green);
+      }
+      .delta-down {
+        color: var(--red);
+      }
+      .delta-neutral {
+        color: var(--muted);
+      }
+
+      .competitor-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+      }
+
+      .competitor-name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .competitor-article {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      .badge {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-weight: 600;
+      }
+
+      .badge-green {
+        background: rgba(34, 197, 94, 0.15);
+        color: var(--green);
+      }
+      .badge-red {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--red);
+      }
+      .badge-amber {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--amber);
+      }
+      .badge-purple {
+        background: rgba(124, 106, 255, 0.15);
+        color: var(--accent);
+      }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+        font-size: 13px;
+      }
+
+      .stat-row:last-child {
+        border-bottom: none;
+      }
+
+      .stat-key {
+        color: var(--muted);
+      }
+
+      .stat-val {
+        font-weight: 600;
+      }
+
+      .bar-wrap {
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin-top: 6px;
+        overflow: hidden;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, var(--accent), var(--accent2));
+      }
+
+      /* AI Analysis */
+      .ai-panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--card-radius);
+        overflow: hidden;
+      }
+
+      .ai-panel-header {
+        background: linear-gradient(
+          135deg,
+          rgba(124, 106, 255, 0.1),
+          rgba(168, 85, 247, 0.05)
+        );
+        border-bottom: 1px solid var(--border);
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .ai-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      .ai-panel-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .ai-content {
+        padding: 20px;
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--text);
+        white-space: pre-wrap;
+      }
+
+      .ai-content .thinking {
+        color: var(--muted);
+        font-style: italic;
+        font-size: 13px;
+      }
+
+      .recommendation {
+        background: var(--surface2);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 8px 8px 0;
+        padding: 14px 16px;
+        margin: 10px 0;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .rec-priority {
+        font-size: 10px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      .priority-high {
+        color: var(--red);
+      }
+      .priority-med {
+        color: var(--amber);
+      }
+      .priority-low {
+        color: var(--green);
+      }
+
+      .action-bar {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 24px auto 0;
+        max-width: 600px;
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        display: inline-block;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      #results {
+        display: none;
+      }
+
+      .search-queries {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .query-row {
+        background: var(--surface2);
+        border-radius: 8px;
+        padding: 10px 14px;
+        display: grid;
+        grid-template-columns: 1fr auto auto auto;
+        gap: 12px;
+        align-items: center;
+        font-size: 13px;
+      }
+
+      .query-text {
+        font-weight: 500;
+      }
+      .query-vol {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .query-conv {
+        font-weight: 600;
+      }
+
+      .winner-tag {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+  <!-- Экран пароля -->
+  <div id="passwordScreen" style="position:fixed;inset:0;background:#0f0f14;display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:16px;">
+    <div style="text-align:center;margin-bottom:8px;">
+      <div style="font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#7c6aff;margin-bottom:12px;font-weight:600;">WB Analytics</div>
+      <div style="font-size:22px;font-weight:700;color:#e8e8f0;margin-bottom:6px;">Введи пароль</div>
+      <div style="font-size:13px;color:#7070a0;">Доступ только для авторизованных пользователей</div>
+    </div>
+    <div style="display:flex;gap:8px;width:100%;max-width:320px;">
+      <input id="pwdInput" type="password" placeholder="Пароль..." style="flex:1;padding:10px 14px;border-radius:8px;background:#18181f;border:1px solid #2a2a38;color:#e8e8f0;font-size:14px;outline:none;" onkeydown="if(event.key==='Enter')checkPassword()">
+      <button onclick="checkPassword()" style="padding:10px 18px;border-radius:8px;background:linear-gradient(135deg,#7c6aff,#a855f7);color:white;border:none;font-size:14px;font-weight:600;cursor:pointer;">Войти</button>
+    </div>
+    <div id="pwdError" style="color:#ef4444;font-size:13px;display:none;">Неверный пароль</div>
+  </div>
+
+  <!-- Основной контент -->
+  <div id="mainContent" style="display:none;">
+
+    <div class="header">
+      <div class="logo">WB Analytics</div>
+      <h1>Анализ конкурентов</h1>
+      <p class="subtitle">
+        Загрузи отчёт «Сравнение карточек» — получи конкретные советы
+      </p>
+    </div>
+
+    <div style="max-width: 600px; margin: 0 auto 32px">
+      <div
+        class="upload-zone"
+        id="dropZone"
+        onclick="document.getElementById('fileInput').click()"
+      >
+        <div class="upload-icon">📊</div>
+        <h3>Загрузи отчёты Excel из WB</h3>
+        <p>Отчёт «Сравнение карточек» — можно несколько файлов сразу или по одному</p>
+        <p style="margin-top: 8px; font-size: 12px; color: #5050a0">
+          Перетащи файлы сюда или нажми — можно докидывать ещё
+        </p>
+        <input
+          type="file"
+          id="fileInput"
+          accept=".xlsx,.xls"
+          multiple
+          onchange="handleFile(event)"
+        />
+      </div>
+
+      <div
+        id="fileInfo"
+        class="hidden"
+        style="
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 14px 18px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span>📄</span>
+          <span id="fileName" style="font-size: 14px; font-weight: 500"></span>
+        </div>
+        <button class="btn btn-primary" id="analyzeBtn" onclick="runAnalysis()">
+          ✨ Анализировать
+        </button>
+      </div>
+    </div>
+
+    <div id="results">
+      <!-- My metrics -->
+      <div class="section">
+        <div class="section-title">Мои показатели — ALLOVEALLURE</div>
+        <div class="grid-4" id="myMetrics"></div>
+      </div>
+
+      <!-- Competitor comparison -->
+      <div class="section">
+        <div class="section-title">Конкуренты</div>
+        <div class="grid-2" id="competitorCards"></div>
+      </div>
+
+      <!-- Search queries all -->
+      <div class="section">
+        <div class="section-title">Поисковые запросы — сравнение конверсий</div>
+        <div class="search-queries" id="searchQueries"></div>
+      </div>
+
+      <!-- SEO recommendations per article -->
+      <div class="section">
+        <div class="section-title">📌 SEO — ключи по артикулам конкурентов</div>
+        <div id="seoSection"></div>
+      </div>
+
+      <!-- Warehouses -->
+      <div class="section">
+        <div class="section-title">🏭 Склады — где продают конкуренты</div>
+        <div id="warehouseSection"></div>
+      </div>
+
+      <!-- AI Analysis -->
+      <div class="section">
+        <div class="section-title">ИИ-анализ и рекомендации</div>
+        <div class="ai-panel">
+          <div class="ai-panel-header">
+            <div class="ai-dot"></div>
+            <div class="ai-panel-title">Claude анализирует данные...</div>
+          </div>
+          <div class="ai-content" id="aiContent">
+            <span class="thinking">Загрузка анализа...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let parsedData = null;
+      let allFiles = [];
+
+      // Drag and drop
+      const dropZone = document.getElementById("dropZone");
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("drag-over");
+      });
+      dropZone.addEventListener("dragleave", () =>
+        dropZone.classList.remove("drag-over"),
+      );
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("drag-over");
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length) processFiles(files);
+      });
+
+      function handleFile(e) {
+        const files = Array.from(e.target.files);
+        if (files.length) processFiles(files);
+        e.target.value = ''; // сброс чтобы можно было выбрать тот же файл снова
+      }
+
+      // Накопительный список загруженных файлов
+      let loadedFileNames = [];
+
+      function processFiles(files) {
+        document.getElementById('fileInfo').classList.remove('hidden');
+
+        let loaded = 0;
+        files.forEach(file => {
+          // не добавляем дубликаты по имени
+          if (loadedFileNames.includes(file.name)) { loaded++; if(loaded===files.length) finishLoading(); return; }
+
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            try {
+              const wb = XLSX.read(e.target.result, { type: 'array' });
+              const d = parseWBReport(wb);
+              allFiles.push(d);
+              loadedFileNames.push(file.name);
+            } catch(err) { alert('Ошибка чтения ' + file.name + ': ' + err.message); }
+            loaded++;
+            if (loaded === files.length) finishLoading();
+          };
+          reader.readAsArrayBuffer(file);
+        });
+      }
+
+      function finishLoading() {
+        parsedData = mergeReports(allFiles);
+        renderFileList();
+      }
+
+      function renderFileList() {
+        const el = document.getElementById('fileName');
+        el.innerHTML = loadedFileNames.map((name, i) =>
+          `<span style="display:inline-flex;align-items:center;gap:6px;background:var(--surface2);padding:4px 10px;border-radius:6px;margin:2px;font-size:13px;">
+            📄 ${name}
+            <span onclick="removeFile(${i})" style="cursor:pointer;color:var(--muted);font-weight:700;">✕</span>
+          </span>`).join('');
+      }
+
+      function removeFile(i) {
+        allFiles.splice(i, 1);
+        loadedFileNames.splice(i, 1);
+        if (allFiles.length) { parsedData = mergeReports(allFiles); }
+        else { parsedData = null; document.getElementById('fileInfo').classList.add('hidden'); }
+        renderFileList();
+      }
+
+      function processFile(file) {
+        processFiles([file]);
+      }
+
+      function parseWBReport(wb) {
+        const data = {};
+
+        // Metrics sheet
+        const metricsSheet = wb.Sheets["Показатели"];
+        if (metricsSheet) {
+          const rows = XLSX.utils.sheet_to_json(metricsSheet, { header: 1 });
+
+          // Row 0 is the title, Row 1 has article headers, data starts at Row 2
+          // Find the header row that contains "Артикул WB"
+          let headerIdx = rows.findIndex(r => (r||[]).some(c => String(c||'').includes('Артикул WB')));
+          if (headerIdx === -1) headerIdx = 1;
+          const headerRow = rows[headerIdx] || [];
+
+          // Map value columns 1,2,4,6,8 to article numbers
+          const valueCols = [1, 2, 4, 6, 8];
+          data.articleColumns = valueCols.map(ci => {
+            const h = String(headerRow[ci] || '');
+            // Match article number but NOT "Разница" (difference) columns
+            const m = h.match(/Артикул WB (\d{6,})/);
+            return { col: ci, article: m ? m[1] : null };
+          }).filter(x => x.article);
+
+          data.metrics = {};
+          rows.slice(headerIdx + 1).forEach((row) => {
+            const key = row[0];
+            if (!key) return;
+            data.metrics[key] = {
+              my: row[1], comp1: row[2], comp2: row[4], comp3: row[6], comp4: row[8],
+              diff1: row[3], diff2: row[5], diff3: row[7], diff4: row[9],
+            };
+          });
+        }
+
+        // Search queries - all articles combined
+        const searchSheet = wb.Sheets["Поисковые запросы по всем ар..."] ||
+          Object.keys(wb.Sheets).find(n => n.includes("Поисковые запросы по всем"));
+        if (searchSheet) {
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[searchSheet], { header: 1 });
+          data.searchQueries = rows.slice(1).filter(r => r[0]).map(r => ({
+            query: r[0], volume: r[1],
+            myConv: r[3], comp1Conv: r[4], comp2Conv: r[5], comp3Conv: r[6], comp4Conv: r[7],
+            myOrderConv: r[13], comp1OrderConv: r[14], comp2OrderConv: r[15], comp3OrderConv: r[16], comp4OrderConv: r[17],
+          }));
+        }
+
+        // Per-article search queries (competitors + my own)
+        data.articleSearches = [];
+        Object.keys(wb.Sheets).forEach(name => {
+          // Match "Поисковые запросы по артик..." but NOT "по всем артикулам"
+          if (!name.includes("Поисковые запросы по артик")) return;
+          if (name.includes("по всем")) return;
+          const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1 });
+          if (rows.length < 2) return;
+          // Extract article number from header row (reliable, sheet name is truncated)
+          const header = rows[0][0] || '';
+          const artMatch = header.match(/артикулу (\d+)/);
+          const article = artMatch ? artMatch[1] : name;
+          const queries = rows.slice(1).filter(r => r[0]).map(r => ({
+            query: r[0], volume: Number(r[1]) || 0,
+            cartConv: Number(r[3]) || 0,
+            orderConv: Number(r[5]) || 0,
+          })).sort((a,b) => b.orderConv - a.orderConv);
+          data.articleSearches.push({ article, queries });
+        });
+
+        // Warehouses
+        const whSheet = wb.Sheets["Склады и регионы"];
+        if (whSheet) {
+          const rows = XLSX.utils.sheet_to_json(whSheet, { header: 1 });
+          data.warehouses = rows.slice(1)
+            .filter(r => r[0] && String(r[1]) !== 'Артикул WB' && r[0] !== 'Название')
+            .map(r => ({
+              name: r[0], article: String(r[1]), brand: r[3],
+              region: r[4], warehouse: r[5],
+              stock: Number(r[6]) || 0,
+              inTransit: Number(r[7]) || 0,
+              ordersPerDay: Number(r[9]) || 0,
+            }));
+        }
+
+        return data;
+      }
+
+      function mergeReports(files) {
+        if (files.length === 1) return files[0];
+        const base = JSON.parse(JSON.stringify(files[0]));
+        for (let i = 1; i < files.length; i++) {
+          const f = files[i];
+          // Merge article columns (unique articles)
+          if (f.articleColumns) {
+            const existingCols = new Set((base.articleColumns||[]).map(c=>c.article));
+            (f.articleColumns||[]).forEach(c => { if (!existingCols.has(c.article)) base.articleColumns.push(c); });
+          }
+          // Merge search queries
+          if (f.searchQueries) {
+            const existing = new Set((base.searchQueries||[]).map(q=>q.query));
+            (f.searchQueries||[]).forEach(q => { if (!existing.has(q.query)) base.searchQueries.push(q); });
+          }
+          // Merge article searches
+          if (f.articleSearches) {
+            const existingArts = new Set((base.articleSearches||[]).map(a=>a.article));
+            (f.articleSearches||[]).forEach(a => { if (!existingArts.has(a.article)) base.articleSearches.push(a); });
+          }
+          // Merge warehouses
+          if (f.warehouses) {
+            (f.warehouses||[]).forEach(w => {
+              const exists = (base.warehouses||[]).find(bw => bw.article === w.article && bw.warehouse === w.warehouse);
+              if (!exists) base.warehouses.push(w);
+            });
+          }
+        }
+        return base;
+      }
+
+      async function runAnalysis() {
+        if (!parsedData) {
+          alert("Подожди, файл ещё читается");
+          return;
+        }
+
+        const btn = document.getElementById("analyzeBtn");
+        btn.innerHTML = '<span class="spinner"></span> Анализирую...';
+        btn.disabled = true;
+
+        document.getElementById("results").style.display = "block";
+        document
+          .getElementById("results")
+          .scrollIntoView({ behavior: "smooth", block: "start" });
+
+        renderMetrics();
+        renderCompetitors();
+        renderSearchQueries();
+        renderSEO();
+        renderWarehouses();
+        await runAIAnalysis();
+
+        btn.innerHTML = "✅ Готово";
+      }
+
+      function renderMetrics() {
+        const m = parsedData.metrics;
+        const myOrders = m["Заказы, шт"]?.my;
+        const myConv = m["Конверсия в заказ, %"]?.my;
+        const myPosition = m["Средняя позиция"]?.my;
+        const myReviews = m["Количество отзывов"]?.my;
+        const myImpressions = m["Показы"]?.my;
+
+        const cards = [
+          {
+            label: "Заказы",
+            value: myOrders,
+            icon: "🛒",
+            note: `vs топ: ${m["Заказы, шт"]?.comp1}`,
+          },
+          {
+            label: "Конверсия",
+            value: myConv + "%",
+            icon: "📈",
+            note: `vs топ: ${m["Конверсия в заказ, %"]?.comp1}%`,
+          },
+          {
+            label: "Позиция",
+            value: "#" + myPosition,
+            icon: "📍",
+            note: `топ конкурент: #${m["Средняя позиция"]?.comp1}`,
+          },
+          {
+            label: "Отзывы",
+            value: Number(myReviews).toLocaleString("ru"),
+            icon: "⭐",
+            note: `vs топ: ${Number(m["Количество отзывов"]?.comp1).toLocaleString("ru")}`,
+          },
+        ];
+
+        document.getElementById("myMetrics").innerHTML = cards
+          .map(
+            (c) => `
+    <div class="metric-card">
+      <div class="metric-label">${c.icon} ${c.label}</div>
+      <div class="metric-value">${c.value}</div>
+      <div class="metric-delta delta-neutral">${c.note}</div>
+    </div>
+  `,
+          )
+          .join("");
+      }
+
+      function renderCompetitors() {
+        const m = parsedData.metrics;
+        const cols = parsedData.articleColumns || [];
+        const myArticle = "384687893";
+
+        // Map metric column index to comp key (col 2->comp1, 4->comp2, 6->comp3, 8->comp4, 1->my)
+        const colToKey = { 1: "my", 2: "comp1", 4: "comp2", 6: "comp3", 8: "comp4" };
+
+        // Build competitor list dynamically from article columns, skipping my own article
+        let competitors = cols
+          .filter((c) => c.article !== myArticle)
+          .map((c) => {
+            const k = colToKey[c.col];
+            return {
+              article: c.article,
+              brand: m["Бренд"]?.[k] || "Конкурент",
+              orders: Number(m["Заказы, шт"]?.[k]) || 0,
+              conv: m["Конверсия в заказ, %"]?.[k],
+              pos: m["Средняя позиция"]?.[k],
+              reviews: Number(m["Количество отзывов"]?.[k]) || 0,
+              price: m["Медианная цена покупателя, ₽"]?.[k],
+              ctr: m["CTR"]?.[k],
+            };
+          });
+
+        // Also pull competitors from warehouse sheet (extra articles not in metrics)
+        const knownArticles = new Set(competitors.map((c) => c.article).concat([myArticle]));
+        const whAgg = {};
+        (parsedData.warehouses || []).forEach((w) => {
+          const art = String(w.article);
+          if (knownArticles.has(art)) return;
+          if (!whAgg[art]) whAgg[art] = { article: art, brand: w.brand || "Конкурент", orders: 0, fromWarehouse: true };
+          whAgg[art].orders += (w.ordersPerDay || 0) * 30; // approx monthly
+        });
+        competitors = competitors.concat(Object.values(whAgg));
+
+        // Dedup by article — keep the entry with the most order data
+        const byArticle = {};
+        competitors.forEach((c) => {
+          const existing = byArticle[c.article];
+          if (!existing || (c.orders > existing.orders)) byArticle[c.article] = c;
+        });
+        competitors = Object.values(byArticle);
+
+        // Sort by orders desc, take top 6
+        competitors = competitors.sort((a, b) => b.orders - a.orders).slice(0, 6);
+
+        const myOrders = Number(m["Заказы, шт"]?.my) || 0;
+
+        document.getElementById("competitorCards").innerHTML = competitors
+          .map((c) => {
+            const threat =
+              c.orders > myOrders * 3 ? "high" : c.orders > myOrders ? "med" : "low";
+            const threatLabel =
+              threat === "high" ? "🔴 Главная угроза" : threat === "med" ? "🟡 Конкурент" : "🟢 Ниже нас";
+            const badgeClass =
+              threat === "high" ? "badge-red" : threat === "med" ? "badge-amber" : "badge-green";
+
+            // Some warehouse-only competitors lack detailed metrics
+            const detailRows = c.fromWarehouse
+              ? `<div class="stat-row"><span class="stat-key">Заказы (оценка)</span><span class="stat-val">~${Number(c.orders).toLocaleString("ru")} шт/мес</span></div>
+                 <div class="stat-row"><span class="stat-key">Источник</span><span class="stat-val">Склады</span></div>`
+              : `<div class="stat-row"><span class="stat-key">Заказы</span><span class="stat-val">${Number(c.orders).toLocaleString("ru")} шт</span></div>
+                 <div class="stat-row"><span class="stat-key">Конверсия</span><span class="stat-val">${c.conv ?? "—"}%</span></div>
+                 <div class="stat-row"><span class="stat-key">Позиция</span><span class="stat-val">#${c.pos ?? "—"}</span></div>
+                 <div class="stat-row"><span class="stat-key">Цена</span><span class="stat-val">${c.price ?? "—"} ₽</span></div>
+                 <div class="stat-row"><span class="stat-key">CTR</span><span class="stat-val">${c.ctr ?? "—"}%</span></div>
+                 <div class="stat-row"><span class="stat-key">Отзывы</span><span class="stat-val">${Number(c.reviews).toLocaleString("ru")}</span></div>`;
+
+            return `
+    <div class="card">
+      <div class="competitor-header">
+        <div>
+          <div class="competitor-name">${c.brand || "Бренд"}</div>
+          <div class="competitor-article">Арт. ${c.article}</div>
+        </div>
+        <span class="badge ${badgeClass}">${threatLabel}</span>
+      </div>
+      ${detailRows}
+    </div>`;
+          })
+          .join("");
+      }
+
+      function renderSearchQueries() {
+        if (!parsedData.searchQueries) return;
+
+        const top = parsedData.searchQueries.slice(0, 8);
+        const myOrders = parsedData.metrics["Заказы, шт"]?.my;
+
+        document.getElementById("searchQueries").innerHTML = top
+          .map((q) => {
+            const convs = [
+              q.myConv,
+              q.comp1Conv,
+              q.comp2Conv,
+              q.comp3Conv,
+              q.comp4Conv,
+            ].map(Number);
+            const maxConv = Math.max(...convs.filter((v) => !isNaN(v)));
+            const imBeating = q.myConv === maxConv;
+            const myIsLow = q.myConv < maxConv * 0.6;
+
+            return `
+    <div class="query-row">
+      <div>
+        <div class="query-text">${q.query}</div>
+        <div class="query-vol">${Number(q.volume).toLocaleString("ru")} запросов/мес</div>
+      </div>
+      <div class="query-conv" style="color:var(--muted)">Я: <span style="color:${myIsLow ? "#ef4444" : "#22c55e"}">${q.myConv}%</span></div>
+      <div class="query-conv" style="color:var(--muted);font-size:12px">Топ: ${maxConv}%</div>
+      <span class="winner-tag badge ${imBeating ? "badge-green" : myIsLow ? "badge-red" : "badge-amber"}">
+        ${imBeating ? "✓ Лидер" : myIsLow ? "↓ Слабо" : "≈ Норм"}
+      </span>
+    </div>`;
+          })
+          .join("");
+      }
+
+      function renderSEO() {
+        const searches = parsedData.articleSearches || [];
+        const myArticle = '384687893';
+        const mySearches = searches.find(a => a.article === myArticle);
+        const myQuerySet = new Set((mySearches?.queries||[]).map(q=>q.query.toLowerCase()));
+
+        const container = document.getElementById('seoSection');
+        if (!searches.length) { container.innerHTML = '<p style="color:var(--muted);font-size:13px">Данные по артикулам не найдены</p>'; return; }
+
+        // Find competitor articles
+        const compSearches = searches.filter(a => a.article !== myArticle);
+
+        // Collect high-conv queries from competitors that my article doesn't have
+        const opportunities = [];
+        compSearches.forEach(cs => {
+          cs.queries.forEach(q => {
+            if (!myQuerySet.has(q.query.toLowerCase()) && q.orderConv >= 5 && q.volume >= 1000) {
+              opportunities.push({ query: q.query, volume: q.volume, orderConv: q.orderConv, fromArticle: cs.article, score: q.volume * q.orderConv });
+            }
+          });
+        });
+
+        // Deduplicate and sort by combined score (volume × conversion) desc
+        const seen = new Set();
+        const unique = opportunities.filter(o => { if(seen.has(o.query)) return false; seen.add(o.query); return true; })
+          .sort((a,b) => b.score - a.score).slice(0, 30);
+
+        // My best queries (only meaningful volume >= 1000)
+        const myTop = (mySearches?.queries||[])
+          .filter(q => q.volume >= 1000)
+          .sort((a,b)=>b.orderConv-a.orderConv).slice(0,15);
+
+        container.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="card">
+              <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">
+                ✅ Мои лучшие ключи (по конверсии в заказ)
+              </div>
+              ${myTop.map(q => `
+                <div class="stat-row">
+                  <span class="stat-key" style="flex:1">${q.query}</span>
+                  <span style="font-size:11px;color:var(--muted);margin-right:8px">${Number(q.volume).toLocaleString('ru')} зап.</span>
+                  <span class="badge badge-green">${q.orderConv}%</span>
+                </div>`).join('')}
+              ${!myTop.length ? '<p style="color:var(--muted);font-size:13px">Нет ключей с объёмом от 1000 запросов</p>' : ''}
+            </div>
+            <div class="card">
+              <div style="font-size:12px;font-weight:600;color:#f59e0b;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">
+                🎯 Ключи конкурентов — тебя нет, а конверсия высокая
+              </div>
+              ${unique.map(q => `
+                <div class="stat-row">
+                  <span class="stat-key" style="flex:1">${q.query}</span>
+                  <span style="font-size:11px;color:var(--muted);margin-right:8px">${Number(q.volume).toLocaleString('ru')} зап.</span>
+                  <span class="badge badge-amber">${q.orderConv}%</span>
+                </div>`).join('')}
+              ${!unique.length ? '<p style="color:var(--muted);font-size:13px">Конкурирующие данные не найдены в этом файле</p>' : ''}
+            </div>
+          </div>`;
+      }
+
+      function renderWarehouses() {
+        const wh = parsedData.warehouses || [];
+        const container = document.getElementById('warehouseSection');
+        if (!wh.length) { container.innerHTML = '<p style="color:var(--muted);font-size:13px">Данные по складам не найдены</p>'; return; }
+
+        const myArticle = '384687893';
+        const myWarehouses = new Set(wh.filter(w => String(w.article) === myArticle).map(w => w.warehouse));
+
+        // Group by warehouse, sum orders per day
+        const whMap = {};
+        wh.forEach(w => {
+          if (!whMap[w.warehouse]) whMap[w.warehouse] = { warehouse: w.warehouse, region: w.region, myStock: 0, compOrders: 0, compBrands: new Set() };
+          if (String(w.article) === myArticle) { whMap[w.warehouse].myStock += w.stock; }
+          else { whMap[w.warehouse].compOrders += w.ordersPerDay; whMap[w.warehouse].compBrands.add(w.brand); }
+        });
+
+        const sorted = Object.values(whMap).sort((a,b) => b.compOrders - a.compOrders);
+        const missing = sorted.filter(w => !myWarehouses.has(w.warehouse) && w.compOrders > 0);
+        const present = sorted.filter(w => myWarehouses.has(w.warehouse) && w.myStock > 0);
+
+        container.innerHTML = `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="card">
+              <div style="font-size:12px;font-weight:600;color:#ef4444;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">
+                ❌ Складов нет — конкуренты там продают
+              </div>
+              ${missing.slice(0,8).map(w => `
+                <div class="stat-row">
+                  <div>
+                    <div class="stat-key">${w.warehouse}</div>
+                    <div style="font-size:11px;color:var(--muted)">${w.region} · ${[...w.compBrands].join(', ')}</div>
+                  </div>
+                  <span class="badge badge-red">${w.compOrders.toFixed(1)} зак/день</span>
+                </div>`).join('')}
+              ${!missing.length ? '<p style="color:var(--green);font-size:13px">✓ Ты присутствуешь на всех складах конкурентов</p>' : ''}
+            </div>
+            <div class="card">
+              <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">
+                ✅ Мои склады
+              </div>
+              ${present.map(w => `
+                <div class="stat-row">
+                  <div>
+                    <div class="stat-key">${w.warehouse}</div>
+                    <div style="font-size:11px;color:var(--muted)">${w.region}</div>
+                  </div>
+                  <span class="badge badge-green">Есть: ${w.myStock} шт</span>
+                </div>`).join('')}
+              ${!present.length ? '<p style="color:var(--muted);font-size:13px">Нет данных по своим складам</p>' : ''}
+            </div>
+          </div>`;
+      }
+
+      async function runAIAnalysis() {
+        const m = parsedData.metrics;
+        const sq = parsedData.searchQueries?.slice(0, 6) || [];
+        const myArticle = "384687893";
+        const cols = parsedData.articleColumns || [];
+        const colToKey = { 1: "my", 2: "comp1", 4: "comp2", 6: "comp3", 8: "comp4" };
+
+        // Build competitors dynamically from the uploaded file, sorted by orders, top 6
+        const competitorList = cols
+          .filter((c) => c.article !== myArticle)
+          .map((c) => {
+            const k = colToKey[c.col];
+            return {
+              article: c.article,
+              brand: m["Бренд"]?.[k],
+              orders: Number(m["Заказы, шт"]?.[k]) || 0,
+              conv: m["Конверсия в заказ, %"]?.[k],
+              pos: m["Средняя позиция"]?.[k],
+              price: m["Медианная цена покупателя, ₽"]?.[k],
+              reviews: m["Количество отзывов"]?.[k],
+              ctr: m["CTR"]?.[k],
+            };
+          })
+          .sort((a, b) => b.orders - a.orders)
+          .slice(0, 6);
+
+        // SEO opportunities: competitor keys (vol>=1000, conv>=5) where my article is absent
+        const searches = parsedData.articleSearches || [];
+        const mySearches = searches.find((a) => a.article === myArticle);
+        const myQuerySet = new Set((mySearches?.queries || []).map((q) => q.query.toLowerCase()));
+        const seoSeen = new Set();
+        const seoOpportunities = [];
+        searches.filter((a) => a.article !== myArticle).forEach((cs) => {
+          cs.queries.forEach((q) => {
+            if (!myQuerySet.has(q.query.toLowerCase()) && q.orderConv >= 5 && q.volume >= 1000 && !seoSeen.has(q.query)) {
+              seoSeen.add(q.query);
+              seoOpportunities.push({ query: q.query, volume: q.volume, orderConv: q.orderConv, score: q.volume * q.orderConv });
+            }
+          });
+        });
+        seoOpportunities.sort((a, b) => b.score - a.score);
+
+        const dataForAI = {
+          myBrand: "ALLOVEALLURE",
+          myArticle: myArticle,
+          metrics: {
+            orders: m["Заказы, шт"]?.my,
+            conversion: m["Конверсия в заказ, %"]?.my,
+            position: m["Средняя позиция"]?.my,
+            price: m["Медианная цена покупателя, ₽"]?.my,
+            reviews: m["Количество отзывов"]?.my,
+            ctr: m["CTR"]?.my,
+            impressions: m["Показы"]?.my,
+            cartAdd: m["Конверсия в корзину, %"]?.my,
+            rating: m["Рейтинг по отзывам"]?.my,
+          },
+          competitors: competitorList,
+          topSearchQueries: sq.map((q) => ({
+            query: q.query,
+            volume: q.volume,
+            myConv: q.myConv,
+            myOrderConv: q.myOrderConv,
+            bestCompConv: Math.max(q.comp1Conv||0, q.comp2Conv||0, q.comp3Conv||0, q.comp4Conv||0),
+            bestCompOrderConv: Math.max(q.comp1OrderConv||0, q.comp2OrderConv||0, q.comp3OrderConv||0, q.comp4OrderConv||0),
+          })),
+          seoOpportunities: seoOpportunities.slice(0, 20),
+          missingWarehouses: (parsedData.warehouses||[])
+            .filter(w => String(w.article) !== myArticle && w.ordersPerDay > 0)
+            .reduce((acc, w) => {
+              const myWh = new Set((parsedData.warehouses||[]).filter(x=>String(x.article)===myArticle).map(x=>x.warehouse));
+              if (!myWh.has(w.warehouse) && !acc.find(a=>a.warehouse===w.warehouse))
+                acc.push({ warehouse: w.warehouse, region: w.region, compOrdersPerDay: w.ordersPerDay });
+              return acc;
+            }, []).slice(0,8),
+        };
+
+        const prompt = `Ты — эксперт по Wildberries аналитике. Проанализируй данные продавца и дай конкретные, применимые сегодня рекомендации.
+
+ДАННЫЕ ПРОДАВЦА (${dataForAI.myBrand}, арт. ${dataForAI.myArticle}):
+${JSON.stringify(dataForAI.metrics, null, 2)}
+
+КОНКУРЕНТЫ (топ-6 по заказам):
+${JSON.stringify(dataForAI.competitors, null, 2)}
+
+ТОП ПОИСКОВЫЕ ЗАПРОСЫ:
+${JSON.stringify(dataForAI.topSearchQueries, null, 2)}
+
+SEO-ВОЗМОЖНОСTИ (ключи конкурентов с объёмом от 1000 и высокой конверсией, которых нет у продавца):
+${JSON.stringify(dataForAI.seoOpportunities, null, 2)}
+
+СКЛАДЫ КОНКУРЕНТОВ (которых нет у продавца):
+${JSON.stringify(dataForAI.missingWarehouses, null, 2)}
+
+Дай анализ в следующем формате:
+
+🔍 ГЛАВНАЯ ПРОБЛЕМА
+[Одна главная причина почему у конкурентов больше заказов — конкретно, с цифрами]
+
+🎯 ЧТО СДЕЛАТЬ ПРЯМО СЕЙЧАС (по приоритетам):
+
+[ПРИОРИТЕТ 1 — ВЫСОКИЙ]
+[Конкретное действие с объяснением почему это важно и какого результата ожидать]
+
+[ПРИОРИТЕТ 2 — СРЕДНИЙ]
+[Конкретное действие]
+
+[ПРИОРИТЕТ 3 — СРЕДНИЙ]
+[Конкретное действие]
+
+💰 ЦЕНОВАЯ СТРАТЕГИЯ
+[Конкретный совет по цене исходя из данных]
+
+🔑 SEO И КЛЮЧЕВЫЕ ЗАПРОСЫ
+[Какие ключи добавить в карточку — бери из списка SEO-возможностей, с объёмами и конверсиями]
+
+🏭 СКЛАДЫ
+[Каких складов не хватает и сколько продаж это может дать]
+
+📊 ИТОГ
+[2-3 предложения: главный вывод и ожидаемый результат от изменений]
+
+Говори конкретно. Используй реальные цифры из данных. Не давай общих советов типа "улучшите контент" — объясняй что именно и почему. ВАЖНО: обязательно заверши ответ полностью, не обрывай на середине. Уложись в отведённый объём, но каждое предложение должно быть законченным.`;
+
+        const aiContent = document.getElementById("aiContent");
+        aiContent.innerHTML =
+          '<span class="thinking">ИИ анализирует данные...</span>';
+
+        try {
+          const response = await fetch(
+            "/api/claude",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "claude-sonnet-4-6",
+                max_tokens: 2500,
+                messages: [{ role: "user", content: prompt }],
+              }),
+            },
+          );
+
+          const data = await response.json();
+          const text = data.content?.[0]?.text || "Ошибка получения анализа";
+
+          // Render with formatting
+          aiContent.innerHTML = formatAIResponse(text);
+        } catch (err) {
+          aiContent.innerHTML = `<span style="color:var(--red)">Ошибка: ${err.message}</span>`;
+        }
+      }
+
+      function formatAIResponse(text) {
+        return text
+          .replace(
+            /\[ПРИОРИТЕТ 1[^\]]*\]/g,
+            '<div class="rec-priority priority-high">🔴 ПРИОРИТЕТ 1 — ВЫСОКИЙ</div>',
+          )
+          .replace(
+            /\[ПРИОРИТЕТ 2[^\]]*\]/g,
+            '<div class="rec-priority priority-med">🟡 ПРИОРИТЕТ 2 — СРЕДНИЙ</div>',
+          )
+          .replace(
+            /\[ПРИОРИТЕТ 3[^\]]*\]/g,
+            '<div class="rec-priority priority-low">🟢 ПРИОРИТЕТ 3</div>',
+          )
+          .replace(
+            /(🔍[^\n]+)/g,
+            '<div style="font-size:15px;font-weight:700;margin:16px 0 8px;color:#e8e8f0">$1</div>',
+          )
+          .replace(
+            /(🎯[^\n]+)/g,
+            '<div style="font-size:15px;font-weight:700;margin:16px 0 8px;color:#e8e8f0">$1</div>',
+          )
+          .replace(
+            /(💰[^\n]+)/g,
+            '<div style="font-size:15px;font-weight:700;margin:16px 0 8px;color:#e8e8f0">$1</div>',
+          )
+          .replace(
+            /(🔑[^\n]+)/g,
+            '<div style="font-size:15px;font-weight:700;margin:16px 0 8px;color:#e8e8f0">$1</div>',
+          )
+          .replace(
+            /(📊[^\n]+)/g,
+            '<div style="font-size:15px;font-weight:700;margin:16px 0 8px;color:#e8e8f0">$1</div>',
+          )
+          .replace(/\n\n/g, "<br><br>")
+          .replace(/\n/g, "<br>");
+      }
+    </script>
+
+    <script>
+      async function checkPassword() {
+        const pwd = document.getElementById('pwdInput').value;
+        try {
+          const res = await fetch('/api/auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pwd })
+          });
+          const data = await res.json();
+          if (data.ok) {
+            document.getElementById('passwordScreen').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+          } else {
+            document.getElementById('pwdError').style.display = 'block';
+          }
+        } catch(e) {
+          document.getElementById('pwdError').style.display = 'block';
+        }
+      }
+    </script>
+  </div>
+
+  </body>
+</html>
